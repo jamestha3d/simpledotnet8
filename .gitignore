@@ -62,3 +62,7 @@ publish/
 # Azure / local settings
 ############################
 
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal

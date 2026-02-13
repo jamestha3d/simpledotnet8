@@ -16,3 +16,15 @@ From Nuget.org, Search => MinimalApis.Extensions
 ```
 dotnet add package MinimalApis.Extensions --version 0.11.0
 ```
+Nuget Packages installed can be found at GameStore.Api.csproj file
+
+# Install EF tool globally
+
+```dotnet tool install --global dotnet-ef --version 8.0.20```
+
+# Create Migration
+
+```dotnet ef migrations add InitialCreate --output-dir Data/Migrations```
+
+#  Apply Migration
+```dotnet ef database update```
