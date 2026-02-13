@@ -1,3 +1,12 @@
 # NOTES
-*.http is used with the rest client extension
-use record instead of regular class because record is immutable, and compares obj by value not memory references. eg p1 == p2 = true if p1.name == p2.name
+
+- `.http` files are used with the **REST Client** extension.  
+- Use **record** instead of a regular class because:
+  - Records are **immutable**.
+  - Records compare objects **by value**, not by reference.  
+    Example:  
+    ```csharp
+    var p1 = new Person("Alice");
+    var p2 = new Person("Alice");
+    Console.WriteLine(p1 == p2); // True
+    ```
