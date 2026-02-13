@@ -6,7 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 // var connString = "Data Source=GameStore.db"; // Path to create sqlite db, moved to appsettings.json
 
 var connString = builder.Configuration.GetConnectionString("GameStore");
-builder.Services.AddSqlite<GameStoreContext>(connString);
+
+builder.Services.AddSqlite<GameStoreContext>(connString); // adding this gamestore context allows .NET to inject dbcontext dependency
 
 var app = builder.Build();
 
