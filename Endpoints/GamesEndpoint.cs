@@ -39,7 +39,7 @@ public static class GamesEndpoint
     {
         // this group mapping made us change return type from WebApplication to RouteGroupBuilder
         // and change all app to group
-        var group = app.MapGroup("games");
+        var group = app.MapGroup("games").WithParameterValidation();
         // GET /games
         group.MapGet("/", () => games);
 
