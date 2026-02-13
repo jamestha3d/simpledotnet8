@@ -2,6 +2,7 @@ using System;
 using GameStore.Api.Data;
 using GameStore.Api.Dtos;
 using GameStore.Api.Entities;
+using GameStore.Api.Mapping;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameStore.Api.Endpoints;
@@ -12,30 +13,6 @@ public static class GamesEndpoint
 
     // add static  cos a static class needs static methods, 
     // and readonly cos we wont be modifying the list from scratch
-    private static readonly List<GameDto> games = [
-        new(
-            1,
-            "Street Fighter II",
-            "Fighting",
-            19.99M,
-            new DateOnly(1992, 7, 15)
-        ),
-        new(
-            2,
-            "Final Fantasy XIV",
-            "Roleplaying",
-            59.99M,
-            new DateOnly(2010, 9, 30)
-        ),
-        new(
-            3,
-            "FIFA 23",
-            "Sports",
-            69.99M,
-            new DateOnly(2022, 9, 27)
-        ),
-
-    ];
 
     // public static WebApplication MapGamesEndpoints(this WebApplication app) // extension method
     public static RouteGroupBuilder MapGamesEndpoints(this WebApplication app) // extension method
@@ -43,17 +20,26 @@ public static class GamesEndpoint
         // this group mapping made us change return type from WebApplication to RouteGroupBuilder
         // and change all app to group
         var group = app.MapGroup("games").WithParameterValidation();
+
         // GET /games
-        group.MapGet("/", () => games);
+        group.MapGet("/", (GameStoreContext dbContext) =>
+            dbContext.Games
+                .Include(game => game.Genre)
+                .Select(game => game.ToGameSummaryDto())
+                .AsNoTracking()); // by default EF tracks all items
+                //we can say no need to track this because we are just returning it. optimization
 
         // GET /games/1
         // group.MapGet("games/{id}", (int id) => games.Find(game => game.Id == id))
         //     .WithName(GetGameEndpointName); // WithName is giving the route a name
-        group.MapGet("/{id}", (int id) => 
+        group.MapGet("/{id}", (int id, GameStoreContext dbContext) => 
             {
-                GameDto? game = games.Find(game => game.Id == id);
+                Game? game = dbContext.Games.Find(id); 
+                // .NET is very efficient,it will first find the game in memory
+                // if it doesnt find it, it will then check the db
 
-                return game is null ? Results.NotFound() : Results.Ok(game);
+                return game is null ? 
+                    Results.NotFound() : Results.Ok(game.ToGameDetailsDto());
             })
             .WithName(GetGameEndpointName); // WithName is giving the route a name
 
@@ -64,51 +50,52 @@ public static class GamesEndpoint
             // {
             //     return Results.BadRequest("Name is Required");
             // }
-            Game game = new()
-            {
-                Name = newGame.Name,
-                Genre = dbContext.Genres.Find(newGame.GenreId),
-                GenreId = newGame.GenreId,
-                Price = newGame.Price,
-                ReleaseDate = newGame.ReleaseDate
-
-            };
+            Game game = newGame.ToEntity();
+            // game.Genre = dbContext.Genres.Find(newGame.GenreId);
 
             dbContext.Games.Add(game);
             dbContext.SaveChanges();
-            GameDto gameDto = new(
-                game.Id,
-                game.Name,
-                game.Genre!.Name, // we know that genre will never be null so !
-                game.Price,
-                game.ReleaseDate
-            );
-            return Results.CreatedAtRoute("GetGame", new {id = game.Id}, gameDto);
+            
+            return Results.CreatedAtRoute("GetGame", new {id = game.Id}, game.ToGameDetailsDto());
         });
 
         // PUT /games
-        group.MapPut("/{id}", (int id, UpdateGameDto updatedGame) =>
+        group.MapPut("/{id}", (int id, UpdateGameDto updatedGame, GameStoreContext dbContext) =>
         {
-            var index = games.FindIndex(game => game.Id == id);
-            if (index == -1)
+            // var index = games.FindIndex(game => game.Id == id);
+            var existingGame = dbContext.Games.Find(id);
+            // if (index == -1)
+            // {
+            //     return Results.NotFound();
+            // }
+            if (existingGame is null)
             {
                 return Results.NotFound();
             }
-            games[index] = new GameDto(
-                id,
-                updatedGame.Name,
-                updatedGame.Genre,
-                updatedGame.Price,
-                updatedGame.ReleaseDate
-            );
+            // games[index] = new GameSummaryDto(
+            //     id,
+            //     updatedGame.Name,
+            //     updatedGame.Genre,
+            //     updatedGame.Price,
+            //     updatedGame.ReleaseDate
+            // );
+            dbContext.Entry(existingGame)
+                .CurrentValues
+                .SetValues(updatedGame.ToEntity(id));
+            
+            dbContext.SaveChanges();
 
             return Results.NoContent();
         });
 
         // DELETE /games
-        group.MapDelete("/{id}", (int id) =>
+        group.MapDelete("/{id}", (int id, GameStoreContext dbContext) =>
         {
-            games.RemoveAll(game => game.Id == id);
+            dbContext.Games
+                .Where(game => game.Id == id)
+                .ExecuteDelete(); // very efficient, batch delete
+
+            // games.RemoveAll(game => game.Id == id);
             return Results.NoContent();
         });
 

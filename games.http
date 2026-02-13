@@ -2,7 +2,7 @@
 GET http://localhost:5047/games
 
 ###
-GET http://localhost:5047/games/1
+GET http://localhost:5047/games/8
 
 ###
 
@@ -17,7 +17,7 @@ Content-Type: application/json
 }
 
 ###
-PUT  http://localhost:5047/games/1
+PUT  http://localhost:5047/games/8
 Content-Type: application/json
 
 {
@@ -28,4 +28,15 @@ Content-Type: application/json
 }
 
 ###
-DELETE http://localhost:5047/games/2
+PUT  http://localhost:5047/games/8
+Content-Type: application/json
+
+{
+    "name": "Street Fighter II",
+    "genreId": 1,
+    "price": 9.99,
+    "releaseDate": "1992-07-15"
+}
+
+###
+DELETE http://localhost:5047/games/1

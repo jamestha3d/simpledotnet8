@@ -6,7 +6,8 @@ public record class UpdateGameDto
 (
     // This is validation. will work in .NET apis but since this is minimal web api wont do much.
     [Required][StringLength(50)] string Name, 
-    [Required][StringLength(20)] string Genre, 
+    // [Required][StringLength(20)] string Genre, 
+    int GenreId,
     [Range(1,100) ]decimal Price,
     DateOnly ReleaseDate
 );
