@@ -22,19 +22,20 @@ public static class GamesEndpoint
         var group = app.MapGroup("games").WithParameterValidation();
 
         // GET /games
-        group.MapGet("/", (GameStoreContext dbContext) =>
-            dbContext.Games
+        group.MapGet("/", async (GameStoreContext dbContext) =>
+            await dbContext.Games // added async await (even though not strictly necessary here)
                 .Include(game => game.Genre)
                 .Select(game => game.ToGameSummaryDto())
-                .AsNoTracking()); // by default EF tracks all items
+                .AsNoTracking() // by default EF tracks all items
+                .ToListAsync()); // Using Async to return Task instead
                 //we can say no need to track this because we are just returning it. optimization
 
         // GET /games/1
         // group.MapGet("games/{id}", (int id) => games.Find(game => game.Id == id))
         //     .WithName(GetGameEndpointName); // WithName is giving the route a name
-        group.MapGet("/{id}", (int id, GameStoreContext dbContext) => 
+        group.MapGet("/{id}", async (int id, GameStoreContext dbContext) => 
             {
-                Game? game = dbContext.Games.Find(id); 
+                Game? game = await dbContext.Games.FindAsync(id); 
                 // .NET is very efficient,it will first find the game in memory
                 // if it doesnt find it, it will then check the db
 
@@ -44,7 +45,7 @@ public static class GamesEndpoint
             .WithName(GetGameEndpointName); // WithName is giving the route a name
 
         // POST /games
-        group.MapPost("/", (CreateGameDto newGame, GameStoreContext dbContext) =>
+        group.MapPost("/", async (CreateGameDto newGame, GameStoreContext dbContext) =>
         {
             // if (string.IsNullOrEmpty(newGame.Name))
             // {
@@ -54,16 +55,16 @@ public static class GamesEndpoint
             // game.Genre = dbContext.Genres.Find(newGame.GenreId);
 
             dbContext.Games.Add(game);
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
             
             return Results.CreatedAtRoute("GetGame", new {id = game.Id}, game.ToGameDetailsDto());
         });
 
         // PUT /games
-        group.MapPut("/{id}", (int id, UpdateGameDto updatedGame, GameStoreContext dbContext) =>
+        group.MapPut("/{id}", async (int id, UpdateGameDto updatedGame, GameStoreContext dbContext) =>
         {
             // var index = games.FindIndex(game => game.Id == id);
-            var existingGame = dbContext.Games.Find(id);
+            var existingGame = await dbContext.Games.FindAsync(id);
             // if (index == -1)
             // {
             //     return Results.NotFound();
@@ -83,17 +84,17 @@ public static class GamesEndpoint
                 .CurrentValues
                 .SetValues(updatedGame.ToEntity(id));
             
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return Results.NoContent();
         });
 
         // DELETE /games
-        group.MapDelete("/{id}", (int id, GameStoreContext dbContext) =>
+        group.MapDelete("/{id}", async (int id, GameStoreContext dbContext) =>
         {
-            dbContext.Games
+            await dbContext.Games
                 .Where(game => game.Id == id)
-                .ExecuteDelete(); // very efficient, batch delete
+                .ExecuteDeleteAsync(); // very efficient, batch delete
 
             // games.RemoveAll(game => game.Id == id);
             return Results.NoContent();
